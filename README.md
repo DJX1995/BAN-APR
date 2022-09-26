@@ -1,2 +1,2 @@
 # BAN-APR
-instructions coming soom!
+instructions coming soon!
