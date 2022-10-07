@@ -3,14 +3,6 @@ from easydict import EasyDict as edict
 
 config = edict()
 
-config.LOG_DIR = ''
-config.MODEL_DIR = ''
-config.RESULT_DIR = ''
-config.DATA_DIR = ''
-config.VERBOSE = False
-config.TAG = ''
-config.special_token = False
-
 # dataset related
 config.dataset = edict()
 config.dataset.name = 'charades'
@@ -27,23 +19,11 @@ config.dataset.path.test_annotation = '../Charades_STA/data/caption/charades_sta
 config.dataset.path.word2idx = '../Charades_STA/data/caption/word2id.json'
 
 
-# CUDNN related params
-config.CUDNN = edict()
-config.CUDNN.BENCHMARK = True
-config.CUDNN.DETERMINISTIC = False
-config.CUDNN.ENABLED = True
-
 video_seq_len = 48
-
 neighbor = 4
 topk = 16
 negative = 0
 prop_num = topk * (neighbor + 1) + negative   # 85
-# prop_num = 2 * prop_num
-# neighbor = 100
-# topk = 1
-# negative = 0
-# prop_num = topk * (neighbor + 1) + negative   # 85
 
 config.gcn = edict()
 config.gcn.hidden_size = 512  # 512
@@ -70,7 +50,7 @@ config.model.sparse_sample = True
 
 # train
 config.train = edict()
-config.train.subset = 50
+config.train.subset = None
 config.train.lr = 0.001
 config.train.patient = 2
 config.stage_epoch = 0
@@ -79,11 +59,8 @@ config.train.decay_step = 5
 config.train.n_epoch = 8
 config.train.batch_size = 32
 config.train.resume = False
-config.train.save_best = False
-config.train.model_id = 'best_cached_6'
-config.train.warmup_proportion = 0.0
-config.train.num_works = 0
-
+config.train.save_best = True
+config.train.model_id = '0'
 
 config.loss = edict()
 config.loss.NAME = 'bce_loss'
@@ -92,18 +69,11 @@ config.loss.max_iou = 1.0
 config.loss.loss_weight = dict(zip(['bce', 'td', 'refine', 'contrast', 'offset'],
                                    [2., 0.2, 3., 0.2, 3.]))
 
-
 # test
 config.test = edict()
-config.test.start_epoch = 0
-config.test.subset = 50
-config.test.RECALL = []
-config.test.TIOU = []
-config.test.NMS_THRESH = 0.4
-config.test.INTERVAL = 1
-config.test.EVAL_TRAIN = False
+config.test.start_epoch = 2
+config.test.subset = None
 config.test.batch_size = 64
-config.test.TOP_K = 10
 
 
 def _update_dict(cfg, value):
