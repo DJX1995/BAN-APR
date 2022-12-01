@@ -74,7 +74,6 @@ class MainLoss(nn.Module):
         self.min_iou = min_iou
         self.max_iou = max_iou
         self.contrast_loss = ContrastLoss()
-        self.boundary_loss = nn.CrossEntropyLoss(reduction='none')
         self.offset_loss = nn.SmoothL1Loss()
 
     def scale(self, iou):
@@ -88,12 +87,6 @@ class MainLoss(nn.Module):
             out_feature['coarse_pred_round'], out_feature['final_pred'], out_feature['offset'], \
             out_feature['offset_gt']
         ious2d_scaled = self.scale(ious2d).clamp(0, 1)
-        # loss_bce = F.binary_cross_entropy_with_logits(
-        #     scores2d.squeeze().masked_select(mask2d),
-        #     ious2d.masked_select(mask2d),
-        #     reduction='none')
-        # loss_bce = loss_bce * torch.pow(torch.sigmoid(scores2d).squeeze().masked_select(mask2d) - ious2d_scaled.masked_select(mask2d), 2)
-        # loss_bce = loss_bce.mean()
         loss_bce = F.binary_cross_entropy_with_logits(
             scores2d.squeeze().masked_select(mask2d),
             ious2d_scaled.masked_select(mask2d)
@@ -115,13 +108,7 @@ class MainLoss(nn.Module):
             final_ious = ious2d_scaled[i][start, end]
             ious_gt.append(final_ious)
         ious_gt = torch.stack(ious_gt)
-        # loss_refine = F.binary_cross_entropy_with_logits(
-        #     final_pred.squeeze(),
-        #     ious_gt,
-        #     reduction='none'
-        # )
-        # loss_refine = loss_refine * torch.pow(torch.sigmoid(final_pred).squeeze() - ious_gt, 2)
-        # loss_refine = loss_refine.mean()
+
         loss_refine = F.binary_cross_entropy_with_logits(
             final_pred.squeeze().flatten(),
             ious_gt.flatten()
