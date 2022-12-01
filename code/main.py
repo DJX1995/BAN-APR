@@ -16,7 +16,7 @@ from config import config_charades, config_anet, config_tacos
 from tqdm import tqdm
 
 # Set device
-gpu_index = 2
+gpu_index = 0
 device = torch.device(f"cuda:{gpu_index}" if torch.cuda.is_available() else "cpu")
 
 seed = 10
@@ -145,8 +145,7 @@ def evaluate_epoch(epoch, main_model, data_loader, loss_weight, split='Validatio
         prop_s_e = torch.cat(prop_s_e)
         score_pred_1d = torch.cat(score_pred_1d)
 
-        recall_x_iou, mean_ious \
-            = evaluate_1d(score_pred_1d, prop_s_e, time_stamp, duration, num_clips=num_clips)
+        recall_x_iou = evaluate_1d(score_pred_1d, prop_s_e, time_stamp, duration, num_clips=num_clips)
         logger.info(f'-----{split}-----')
         logger.info(f'Validation R1@IOU>0.3: {recall_x_iou[0, 0]:4f}, '
                     f'Validation R1@IOU>0.5: {recall_x_iou[0, 1]:4f}, '
@@ -197,8 +196,7 @@ def evaluate_model(best_model, data_loader, config):
     time_stamp = torch.cat(time_stamp)
     duration = torch.cat(duration)
 
-    recall_x_iou, mean_ious \
-        = evaluate_1d(score_pred_1d, prop_s_e, time_stamp, duration, num_clips=video_seq_len)
+    recall_x_iou = evaluate_1d(score_pred_1d, prop_s_e, time_stamp, duration, num_clips=video_seq_len)
 
     logger.info('-----Evaluation-----')
     logger.info(f'Validation R1@IOU>0.3: {recall_x_iou[0, 0]:4f}, '
