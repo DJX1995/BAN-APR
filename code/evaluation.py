@@ -1,31 +1,8 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import json
 import os
 import torch
 from tqdm import tqdm
-
-
-def get_iou(pred, target, return_raw=True):
-    pred_left = pred[:, 0]
-    pred_right = pred[:, 1]
-
-    target_left = target[:, 0]
-    target_right = target[:, 1]
-
-    intersect = np.minimum(pred_right, target_right) - np.maximum(pred_left, target_left)
-    intersect[intersect < 0] = 0
-    target_area = target_right - target_left
-    pred_area = pred_right - pred_left
-    pred_area[pred_area < 0] = 0
-    union = target_area + pred_area - intersect
-    IOU = intersect / (union + 1e-8)
-
-    assert IOU.size != 0
-    if return_raw:
-        return IOU
-    else:
-        return IOU.mean()
 
 
 def nms(moments, scores, topk=5, thresh=0.5):
@@ -125,8 +102,6 @@ def evaluate_1d(score_pred, prop_s_e, time_stamp, duration, num_clips=48, nms_th
     recall_metrics = torch.tensor(recall_metrics, device=device)
     iou_metrics = torch.tensor(iou_metrics, device=device)
     recall_x_iou = torch.zeros(num_recall_metrics, num_iou_metrics, device=device)
-    top32 = 32
-    mean_ious = []
     for idx, score1d in tqdm(enumerate(score_pred)):
         candidates = prop_s_e[idx] * duration[idx] / num_clips
         moments = nms(candidates, score1d, topk=recall_metrics[-1], thresh=nms_thresh)
@@ -134,10 +109,6 @@ def evaluate_1d(score_pred, prop_s_e, time_stamp, duration, num_clips=48, nms_th
             mious = iou(moments[:r], time_stamp[idx])
             bools = mious[:, None].expand(-1, num_iou_metrics) > iou_metrics
             recall_x_iou[i] += bools.any(dim=0)
-        mious = iou(moments[:top32], time_stamp[idx]).mean()
-        mean_ious.append(mious)
-    mean_ious = torch.stack(mean_ious)
-    mean_ious = mean_ious.mean()
     recall_x_iou /= len(score_pred)
-    return recall_x_iou, mean_ious
+    return recall_x_iou
 
