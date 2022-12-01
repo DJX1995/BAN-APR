@@ -3,7 +3,6 @@ import h5py
 import pandas as pd
 import json
 import os
-import spacy
 
 from torch.nn.utils.rnn import pad_sequence
 import torch
@@ -16,7 +15,6 @@ from torch.utils.data import Dataset, DataLoader
 def iou(candidates, gt):
     start, end = candidates[:, 0], candidates[:, 1]
     s, e = gt[0].float(), gt[1].float()
-    # print(s.dtype, start.dtype)
     inter = end.min(e) - start.max(s)
     union = end.max(e) - start.min(s)
     return inter.clamp(min=0) / union
@@ -27,15 +25,6 @@ class CharadesSTA(Dataset):
 
     def __init__(self, word2idx_path, annotation_path, v_feat_path, v_feat_path_vgg=None, max_video_seq_len=48,
                  subset=None, data_type='i3d'):
-        """
-        Args:
-            vname_file (string): Path to the video name file
-            word2idx_path
-            caption_file (string): Path to the caption file with timestamp annotations.
-            v_feat_path (string): Directory with all c3d or i3d files.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-        """
         self.data_type = data_type
         self.word2id = json.load((open(word2idx_path)))
         self.v_feat_path = v_feat_path
@@ -45,13 +34,11 @@ class CharadesSTA(Dataset):
         self.process_annotation(subset)
 
     def process_annotation(self, subset):
-        cls_token = '<CLS>'
         if subset is not None:
             df = pd.read_pickle(self.annotation_path)[:subset]
         else:
             df = pd.read_pickle(self.annotation_path)
         num_clips = self.max_video_seq_len
-        nlp = spacy.load('en_core_web_sm')
         self.annos = []
         for i in tqdm(range(len(df)), total=len(df), desc='extracting captions data'):
             vid = df['video_name'][i]
@@ -64,9 +51,7 @@ class CharadesSTA(Dataset):
 
             iou2d = torch.ones(num_clips, num_clips)
             grids = iou2d.nonzero(as_tuple=False)
-#             grids[:, 1] += 1
             candidates = grids * duration / num_clips
-            # candidates[:, 1] = (grids[:, 1] + 1) * duration / num_clips
             iou2d = iou(candidates, moment).reshape(num_clips, num_clips)
 
             start_idx = torch.floor(moment[0] * num_clips / duration)
@@ -192,10 +177,6 @@ class CharadesSTA(Dataset):
 
         visual = self.average_to_fixed_length(visual)
         visual_len = self.max_video_seq_len
-        # gt_s, gt_e = start_end_gt.numpy()
-        # map_gt = np.zeros((visual_len, ), dtype=np.float32)
-        # map_gt[gt_s] = 1
-        # map_gt[gt_e] = 1
         map_gt = np.zeros((2, visual_len), dtype=np.float32)
         gt_s, gt_e = start_end_gt.numpy()
         gt_length = gt_e - gt_s + 1  # make sure length > 0
@@ -218,39 +199,4 @@ class CharadesSTA(Dataset):
         return visual, text, visual_len, iou2d, duration, timestamp, mask2d_contrast, \
                start_end_offset, start_end_gt, map_gt, vname, sentence
 
-
-if __name__ == "__main__":
-    # from ViLTran import ViLTransformer
-    from charades_config import config
-
-    annotation_path = config.dataset.path.train_annotation
-    annotation_path_val = config.dataset.path.val_annotation
-    annotation_path_test = config.dataset.path.test_annotation
-    word2idx_path = config.dataset.path.word2idx
-    v_feat_path = config.dataset.path.i3d
-    v_feat_path_vgg = config.dataset.path.vgg
-    gpu_index = 0
-    device = torch.device(f"cuda:{gpu_index}" if torch.cuda.is_available() else "cpu")
-    glove_emb_path = config.dataset.glove
-    glove_emb = np.load(open(glove_emb_path, 'rb'))
-    vocab_size = len(glove_emb)
-    video_seq_len = config.model.video_seq_len
-    batch_size = config.train.batch_size
-    subset = config.train.subset
-    dataset_train = CharadesSTA(word2idx_path, annotation_path, v_feat_path, v_feat_path_vgg,
-                                max_video_seq_len=video_seq_len, subset=subset)
-    train_loader = DataLoader(dataset=dataset_train, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
-
-    # model = ViLTransformer(vocab_size, config.vilt, glove_emb, device).to(device)
-    for batch_idx, batch_data in tqdm(enumerate(train_loader), total=int(len(dataset_train) / batch_size),
-                                      desc='generating batch data'):
-        data, info = batch_data
-        data = {key: value.to(device) for key, value in data.items()}
-        # out_feature = model(data['v_feature'], data['q_feature'], data['v_len'], data['q_len'])
-        # visual_feature = out_feature[:, :video_seq_len, :]
-        pass
-        # visual, pad_text, pad_numericalized_caption, video_len, text_lens, numericalized_caption_len, y_label, y_contrast_label, vname
-        # print(batch_data)
-        # break
-    print('Done')
 

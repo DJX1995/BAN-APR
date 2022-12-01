@@ -3,7 +3,6 @@ import h5py
 import pandas as pd
 import json
 import os
-import spacy
 
 from torch.nn.utils.rnn import pad_sequence
 import torch
@@ -16,7 +15,6 @@ from torch.utils.data import Dataset, DataLoader
 def iou(candidates, gt):
     start, end = candidates[:, 0], candidates[:, 1]
     s, e = gt[0].float(), gt[1].float()
-    # print(s.dtype, start.dtype)
     inter = end.min(e) - start.max(s)
     union = end.max(e) - start.min(s)
     return inter.clamp(min=0) / union
@@ -62,7 +60,6 @@ class ActivityNet(Dataset):
             grids = iou2d.nonzero(as_tuple=False)
             candidates = grids * duration / num_clips
             grids[:, 1] += 1
-            # candidates[:, 1] = (grids[:, 1] + 1) * duration / num_clips
             iou2d = iou(candidates, moment).reshape(num_clips, num_clips)
 
             start_idx = torch.floor(moment[0] * num_clips / duration)
@@ -188,20 +185,6 @@ class ActivityNet(Dataset):
         map_gt = np.zeros((2, visual_len), dtype=np.float32)
         gt_s, gt_e = start_end_gt.numpy()
         gt_length = gt_e - gt_s + 1  # make sure length > 0
-        # map_gt[0, :] = np.exp(-0.5 * np.square((np.arange(visual_len) - gt_s) / (0.25 * gt_length)))
-        # map_gt[1, :] = np.exp(-0.5 * np.square((np.arange(visual_len) - gt_e) / (0.25 * gt_length)))
-        # map_gt[0, map_gt[0, :] >= 0.6] = 1.
-        # map_gt[0, map_gt[0, :] < 0.1353] = 0.
-        # map_gt[1, map_gt[1, :] >= 0.6] = 1.
-        # map_gt[1, map_gt[1, :] < 0.1353] = 0.
-        # if (map_gt[0, :] > 0.4).sum() == 0:
-        #     p = np.exp(-0.5 * np.square((np.arange(visual_len) - gt_s) / (0.25 * gt_length)))
-        #     idx = np.argsort(p)
-        #     map_gt[0, idx[-1]] = 1.
-        # if (map_gt[1, :] > 0.4).sum() == 0:
-        #     p = np.exp(-0.5 * np.square((np.arange(visual_len) - gt_e) / (0.25 * gt_length)))
-        #     idx = np.argsort(p)
-        #     map_gt[1, idx[-1]] = 1.
         map_gt[0, :] = np.exp(-0.5 * np.square((np.arange(visual_len) - gt_s) / (0.15 * gt_length)))
         map_gt[1, :] = np.exp(-0.5 * np.square((np.arange(visual_len) - gt_e) / (0.15 * gt_length)))
         map_gt[0, map_gt[0, :] >= 0.7] = 1.
