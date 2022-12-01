@@ -90,7 +90,6 @@ def get_dataloader(config):
                                    subset=config.test.subset)
         test_loader = DataLoader(dataset=dataset_test, batch_size=test_batch_size, shuffle=False, collate_fn=collate_fn,
                                  num_workers=num_workers)
-    #         val_loader = test_loader
     else:
         dataset_train = TACoS(word2idx_path, annotation_path, v_feat_path, v_feat_path_vgg,
                                     max_video_seq_len=video_seq_len,
